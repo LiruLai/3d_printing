@@ -1,0 +1,147 @@
+/* 3D 列印排程與單機專用樣式 */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0b0f19;
+  color: #e2e8f0;
+}
+
+/* 狀態指示呼吸燈特效 */
+.pulse-indicator {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.pulse-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.pulse-idle {
+  background-color: #10b981;
+  box-shadow: 0 0 10px #10b981;
+}
+.pulse-idle::after {
+  border: 2px solid #10b981;
+}
+
+.pulse-printing {
+  background-color: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6;
+}
+.pulse-printing::after {
+  border: 2px solid #3b82f6;
+}
+
+.pulse-maintenance {
+  background-color: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b;
+}
+.pulse-maintenance::after {
+  border: 2px solid #f59e0b;
+}
+
+.pulse-offline {
+  background-color: #64748b;
+  box-shadow: 0 0 10px #64748b;
+}
+.pulse-offline::after {
+  border: 2px solid #64748b;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* 雲端同步動態旋轉 */
+@keyframes spin-sync {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sync-spinning {
+  animation: spin-sync 1s linear infinite;
+}
+
+/* 自訂滑動捲軸 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #111827;
+}
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* 看板卡片拖曳與過渡 */
+.kanban-column {
+  min-height: 480px;
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kanban-card {
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.kanban-card:active {
+  cursor: grabbing;
+}
+.kanban-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+.kanban-column.drag-over {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+/* QR Code 容器白色外框確保掃描成功 */
+.qrcode-wrapper {
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
