@@ -568,13 +568,6 @@ class SinglePrinterQueueApp {
     this.saveData();
     this.render();
     this.showToast('✓ 模型已完工歸檔！');
-
-    const next = this.queue.find(j => j.status === 'queued');
-    if (next) {
-      if (confirm(`「${job.modelName}」已標記完成！\n是否立即啟動排隊第 1 順位的「${next.modelName}」？`)) {
-        this.startPrintingJob(next.id);
-      }
-    }
   }
 
   requeueJob(jobId) {
