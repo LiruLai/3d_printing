@@ -618,7 +618,12 @@ class SinglePrinterQueueApp {
         document.getElementById('job-provider-input').value = job.fileProvider || '';
         document.getElementById('job-purpose-input').value = job.purpose || '';
         document.getElementById('job-duedate-input').value = job.dueDate || '';
-        document.getElementById('job-material-input').value = job.material || 'PLA';
+        const mat = (job.material || 'PLA').toUpperCase();
+        const plaCheck = document.getElementById('mat-pla');
+        const petgCheck = document.getElementById('mat-petg');
+        if (plaCheck) plaCheck.checked = mat.includes('PLA');
+        if (petgCheck) petgCheck.checked = mat.includes('PETG');
+
         document.getElementById('job-hours-input').value = job.estimatedHours || 2.0;
         document.getElementById('job-priority-select').value = job.priority || 'normal';
         document.getElementById('job-status-select').value = job.status || 'queued';
@@ -634,6 +639,10 @@ class SinglePrinterQueueApp {
       document.getElementById('job-status-select').value = defaultStatus;
       const defaultDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
       document.getElementById('job-duedate-input').value = defaultDate;
+      const plaCheck = document.getElementById('mat-pla');
+      const petgCheck = document.getElementById('mat-petg');
+      if (plaCheck) plaCheck.checked = true;
+      if (petgCheck) petgCheck.checked = false;
       if (progressGroup) progressGroup.classList.add('hidden');
     }
 
@@ -723,7 +732,21 @@ class SinglePrinterQueueApp {
     const fileProvider = document.getElementById('job-provider-input').value.trim();
     const purpose = document.getElementById('job-purpose-input').value.trim();
     const dueDate = document.getElementById('job-duedate-input').value;
-    const material = document.getElementById('job-material-input').value.trim();
+    
+    // 取得材料複選選項
+    const isPla = document.getElementById('mat-pla')?.checked;
+    const isPetg = document.getElementById('mat-petg')?.checked;
+    let material = 'PLA';
+    if (isPla && isPetg) {
+      material = 'PLA / PETG';
+    } else if (isPetg) {
+      material = 'PETG';
+    } else if (isPla) {
+      material = 'PLA';
+    } else {
+      material = 'PLA'; // 若皆未勾選，預設 PLA
+    }
+
     const estimatedHours = parseFloat(document.getElementById('job-hours-input').value) || 1.0;
     const priority = document.getElementById('job-priority-select').value;
     const status = document.getElementById('job-status-select').value;
