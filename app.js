@@ -463,9 +463,9 @@ class SinglePrinterQueueApp {
                 ` : ''}
               </div>
 
-              <!-- 調整排序箭頭 (⬆ / ⬇) 與 編輯、刪除按鈕 -->
+              <!-- 調整排序箭頭 (⬆ / ⬇ 僅排隊中項目顯示) 與 編輯、刪除按鈕 -->
               <div class="flex items-center gap-1.5">
-                ${!isCompleted ? `
+                ${isQueued ? `
                   <button onclick="app.moveQueueOrder('${job.id}', -1)" title="順序往前移" class="liquid-pill-white p-2 text-slate-700 hover:text-indigo-600 transition-colors flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path></svg>
                   </button>
