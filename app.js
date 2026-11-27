@@ -378,9 +378,10 @@ class SinglePrinterQueueApp {
     const container = document.getElementById('queue-list-container');
     if (!container) return;
 
-    let items = this.queue;
+    // 排程佇列只顯示尚未完工的模型（正在列印中 + 排隊中）；已完工項目進入「完工歷史」清單
+    let items = this.queue.filter(j => j.status !== 'completed');
 
-    const statusWeight = { printing: 1, queued: 2, completed: 3 };
+    const statusWeight = { printing: 1, queued: 2 };
     items = [...items].sort((a, b) => (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99));
 
     if (items.length === 0) {
