@@ -273,21 +273,6 @@ class SinglePrinterQueueApp {
       });
     });
 
-    document.getElementById('search-input')?.addEventListener('input', (e) => {
-      this.searchQuery = e.target.value.trim().toLowerCase();
-      this.renderCurrentView();
-    });
-
-    document.getElementById('filter-status')?.addEventListener('change', (e) => {
-      this.filterStatus = e.target.value;
-      this.renderCurrentView();
-    });
-
-    document.getElementById('filter-priority')?.addEventListener('change', (e) => {
-      this.filterPriority = e.target.value;
-      this.renderCurrentView();
-    });
-
     document.getElementById('btn-add-job')?.addEventListener('click', () => this.openJobModal());
     document.getElementById('btn-cloud-sync-modal')?.addEventListener('click', () => this.openSyncModal());
     document.getElementById('btn-export-csv')?.addEventListener('click', () => this.exportCSV());
@@ -462,23 +447,6 @@ class SinglePrinterQueueApp {
 
     let items = this.queue;
 
-    if (this.searchQuery) {
-      items = items.filter(j =>
-        j.modelName.toLowerCase().includes(this.searchQuery) ||
-        j.requester.toLowerCase().includes(this.searchQuery) ||
-        j.fileProvider.toLowerCase().includes(this.searchQuery) ||
-        j.purpose.toLowerCase().includes(this.searchQuery) ||
-        (j.notes && j.notes.toLowerCase().includes(this.searchQuery))
-      );
-    }
-
-    if (this.filterStatus !== 'all') {
-      items = items.filter(j => j.status === this.filterStatus);
-    }
-    if (this.filterPriority !== 'all') {
-      items = items.filter(j => j.priority === this.filterPriority);
-    }
-
     const statusWeight = { printing: 1, queued: 2, completed: 3 };
     items = [...items].sort((a, b) => (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99));
 
@@ -500,27 +468,16 @@ class SinglePrinterQueueApp {
       const isPrinting = job.status === 'printing';
       const isCompleted = job.status === 'completed';
       const isQueued = job.status === 'queued';
-      const orderLabel = isPrinting ? '當前列印' : (isQueued ? `排隊 #${queueOrderNumber++}` : '已完成');
-
-      const dueDays = this.getDaysUntilDue(job.dueDate);
-      const dueBadge = this.getDueBadge(job.dueDate, dueDays, isCompleted);
 
       return `
         <div class="rounded-2xl p-4 sm:p-4.5 border transition-all ${isPrinting ? 'bg-slate-900/90 border-indigo-500/40 shadow-lg shadow-indigo-950/30' : (isCompleted ? 'bg-slate-950/40 border-slate-800/50 opacity-75' : 'bg-slate-900/50 border-slate-800/80 hover:border-slate-700')}">
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             
             <div class="flex-1 min-w-0 w-full">
-              <div class="flex items-center flex-wrap gap-2 mb-2">
-                <span class="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${isPrinting ? 'bg-indigo-600 text-white' : (isQueued ? 'bg-slate-800 text-slate-300 border border-slate-700' : 'bg-slate-800/50 text-slate-500')}">
-                  ${orderLabel}
-                </span>
-                ${this.getPriorityBadge(job.priority)}
-                ${this.getStatusBadge(job.status)}
-                ${dueBadge}
-              </div>
-
-              <h3 class="text-base font-bold text-white mb-2 leading-snug hover:text-indigo-400 transition-colors">
-                ${job.modelName}
+              <!-- 模型名稱 (排隊序號以極簡文字呈現，不使用任何標籤) -->
+              <h3 class="text-base font-bold text-white mb-2.5 leading-snug hover:text-indigo-400 transition-colors flex items-center gap-2">
+                ${isPrinting ? '<span class="text-indigo-400 font-mono text-xs font-semibold shrink-0">[列印中]</span>' : (isQueued ? `<span class="text-slate-400 font-mono text-xs font-semibold shrink-0">#${queueOrderNumber++}</span>` : '')}
+                <span class="truncate">${job.modelName}</span>
               </h3>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1.5 text-xs text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
