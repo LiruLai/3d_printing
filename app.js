@@ -390,7 +390,7 @@ class SinglePrinterQueueApp {
                 <span class="truncate">${job.modelName}</span>
               </h3>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 text-xs text-slate-600 liquid-inner-box p-3.5">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-slate-600 liquid-inner-box p-3.5">
                 <div class="flex items-center gap-1.5">
                   <span class="text-slate-400 font-medium shrink-0">提需求人員:</span>
                   <span class="text-slate-800 font-bold truncate" title="${job.requester}">${job.requester}</span>
@@ -399,22 +399,17 @@ class SinglePrinterQueueApp {
                   <span class="text-slate-400 font-medium shrink-0">3D檔案提供:</span>
                   <span class="text-indigo-600 font-semibold truncate" title="${job.fileProvider}">${job.fileProvider}</span>
                 </div>
-                <div class="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-slate-400 font-medium shrink-0">耗材規格:</span>
+                  <span class="text-slate-800 font-bold">${job.material || 'PLA'}</span>
+                </div>
+                <div class="flex items-center gap-1.5 sm:col-span-2">
                   <span class="text-slate-400 font-medium shrink-0">使用目的:</span>
                   <span class="text-slate-700 font-medium truncate" title="${job.purpose}">${job.purpose || '未填寫'}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-slate-400 font-medium shrink-0">需求日期:</span>
                   <span class="font-mono text-amber-600 font-bold">${job.dueDate || '無指定'}</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="text-slate-400 font-medium shrink-0">耗材規格:</span>
-                  <span class="text-slate-800 font-bold">${job.material || 'PLA'}</span>
-                </div>
-                <div class="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
-                  <span class="text-slate-400 font-medium shrink-0">預估時數/備註:</span>
-                  <span class="font-mono text-violet-700 font-bold mr-1.5">${job.estimatedHours}h</span>
-                  <span class="text-slate-500 truncate max-w-[200px]" title="${job.notes || ''}">${job.notes || '無'}</span>
                 </div>
               </div>
             </div>
@@ -434,12 +429,6 @@ class SinglePrinterQueueApp {
                   <button onclick="app.markJobComplete('${job.id}')" class="liquid-pill-mint px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     完工歸檔
-                  </button>
-                ` : ''}
-
-                ${isCompleted ? `
-                  <button onclick="app.requeueJob('${job.id}')" class="liquid-pill-white px-3 py-1.5 text-xs font-semibold text-slate-700">
-                    重新排隊
                   </button>
                 ` : ''}
               </div>
