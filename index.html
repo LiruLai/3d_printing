@@ -178,7 +178,7 @@
 
   <!-- 工單新增 / 編輯 Modal -->
   <div id="job-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div class="modal-content-card bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
         <h3 id="job-modal-title" class="text-base font-bold text-white">排入待列印模型</h3>
         <button type="button" class="modal-close-btn text-slate-400 hover:text-white p-1 rounded-lg">
@@ -249,6 +249,16 @@
           </div>
         </div>
 
+        <!-- 當前列印進度 (僅在 printing 狀態時顯示) -->
+        <div id="job-progress-group" class="hidden">
+          <label class="block text-xs font-medium text-slate-300 mb-1">列印進度百分比 (0-100%)</label>
+          <div class="flex items-center gap-3">
+            <input type="range" id="job-progress-range" min="0" max="100" value="0" oninput="document.getElementById('job-progress-input').value = this.value" class="flex-1 accent-indigo-500">
+            <input type="number" id="job-progress-input" min="0" max="100" value="0" oninput="document.getElementById('job-progress-range').value = this.value" class="w-20 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-center text-slate-100 font-mono focus:outline-none focus:border-indigo-500">
+            <span class="text-xs text-slate-400 font-mono">%</span>
+          </div>
+        </div>
+
         <!-- 備註說明 -->
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">切片參數 / 備註說明</label>
@@ -269,7 +279,7 @@
 
   <!-- 手機跨裝置同步中心 Modal (包含 QR Code) -->
   <div id="sync-modal" class="modal-backdrop fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div class="modal-content-card bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">

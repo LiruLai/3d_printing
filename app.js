@@ -1,27 +1,28 @@
 /**
  * 單機專用 3D 列印佇列與排程系統 (3D Print Queue)
- * 專注排程佇列與交期追蹤 (PC & 手機即時雙向同步)
+ * 解決 Modal 跳掉與同步鎖定問題 (極致穩定版)
  */
 
-// 預設機台狀態 (閒置待命)
 const DEFAULT_PRINTER = {
   name: '工坊 3D 印表機',
-  status: 'idle', // 'idle' | 'printing' | 'maintenance'
+  status: 'idle',
   currentJobId: null,
   note: '日常運作正常，0.4mm 噴嘴'
 };
 
-// 預設清單清空為空白（讓管理者從零填寫真實工單）
 const DEFAULT_QUEUE = [];
 
 class SinglePrinterQueueApp {
   constructor() {
     this.printer = DEFAULT_PRINTER;
     this.queue = [];
-    this.currentView = 'queue'; // 'queue' | 'history'
+    this.currentView = 'queue';
     this.searchQuery = '';
     this.filterStatus = 'all';
     this.filterPriority = 'all';
+
+    // 狀態鎖定：防止使用者在輸入時被背景同步打斷或關閉
+    this.isModalOpen = false;
 
     // 跨裝置雲端同步狀態
     this.syncKey = '';
@@ -89,6 +90,8 @@ class SinglePrinterQueueApp {
 
   saveData(triggerCloudSync = true) {
     try {
+      // 標記本地最新更新時間戳
+      localStorage.setItem('3d_print_last_local_update', Date.now().toString());
       localStorage.setItem('3d_single_printer_queue', JSON.stringify(this.queue));
       localStorage.setItem('3d_single_printer_info', JSON.stringify(this.printer));
     } catch (e) {
@@ -107,6 +110,7 @@ class SinglePrinterQueueApp {
     const payload = {
       syncKey: this.syncKey,
       updatedAt: new Date().toISOString(),
+      timestamp: Date.now(),
       printer: this.printer,
       queue: this.queue
     };
@@ -154,13 +158,15 @@ class SinglePrinterQueueApp {
       this.lastSyncedAt = new Date();
       this.updateSyncUI('synced', `已即時同步 (${this.formatTime(this.lastSyncedAt)})`);
     } catch (err) {
-      console.warn('Cloud sync push warning (will retry):', err);
-      this.updateSyncUI('offline', '離線快取中 (待連線時自動重試)');
+      console.warn('Cloud sync push warning:', err);
+      this.updateSyncUI('offline', '已離線 (本機完整保存)');
     }
   }
 
   async pullFromCloud(isInitial = false) {
     if (!this.syncKey) return;
+    // 若使用者正在開啟 Modal 編輯，絕對不可拉取覆蓋！
+    if (this.isModalOpen) return;
     if (this.syncStatus === 'syncing') return;
 
     this.updateSyncUI('syncing', '正在檢查最新雲端排程...');
@@ -194,11 +200,13 @@ class SinglePrinterQueueApp {
 
   applyCloudData(cloudData) {
     if (!cloudData || !Array.isArray(cloudData.queue)) return;
+    if (this.isModalOpen) return; // 編輯中嚴禁覆蓋
 
     const localUpdatedAt = localStorage.getItem('3d_print_last_local_update') || '0';
-    const cloudUpdatedAt = new Date(cloudData.updatedAt || 0).getTime();
+    const cloudTimestamp = cloudData.timestamp || new Date(cloudData.updatedAt || 0).getTime();
 
-    if (cloudUpdatedAt >= parseInt(localUpdatedAt, 10)) {
+    // 只有當雲端資料明確比本地新時才覆蓋
+    if (cloudTimestamp > parseInt(localUpdatedAt, 10)) {
       this.queue = cloudData.queue;
       if (cloudData.printer) this.printer = cloudData.printer;
       this.saveData(false);
@@ -210,14 +218,13 @@ class SinglePrinterQueueApp {
     if (this.syncTimer) clearInterval(this.syncTimer);
 
     this.syncTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      // 只有在視窗可見且未在編輯時才自動輪詢
+      if (document.visibilityState === 'visible' && !this.isModalOpen) {
         this.pullFromCloud();
       }
-    }, 15000);
+    }, 20000);
 
-    window.addEventListener('focus', () => {
-      this.pullFromCloud();
-    });
+    // 移除 window focus 盲目覆蓋事件，改用手動或背景輪詢，避免點選 input 切換焦點時跳掉
   }
 
   updateSyncUI(status, message) {
@@ -289,8 +296,6 @@ class SinglePrinterQueueApp {
       document.getElementById('import-file-input')?.click();
     });
     document.getElementById('import-file-input')?.addEventListener('change', (e) => this.handleImportJSON(e));
-    
-    // 清空所有排程
     document.getElementById('btn-clear-all')?.addEventListener('click', () => this.clearAllJobs());
 
     document.getElementById('btn-manual-sync')?.addEventListener('click', () => {
@@ -299,15 +304,36 @@ class SinglePrinterQueueApp {
     });
     document.getElementById('btn-copy-mobile-link')?.addEventListener('click', () => this.copyMobileLink());
 
+    // 關閉 Modal 按鈕
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
       btn.addEventListener('click', () => this.closeModals());
     });
+
+    // 表單送出
     document.getElementById('job-form')?.addEventListener('submit', (e) => this.handleJobSubmit(e));
     document.getElementById('sync-form')?.addEventListener('submit', (e) => this.handleSyncSave(e));
+
+    // 點擊 Modal 外部遮罩關閉 (加上確認機制，防止打字誤觸跳掉)
     document.querySelectorAll('.modal-backdrop').forEach(modal => {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) this.closeModals();
+      modal.addEventListener('mousedown', (e) => {
+        // 只有點擊最外層黑色遮罩本身時才觸發
+        if (e.target === modal) {
+          modal.dataset.clickedBackdrop = "true";
+        } else {
+          modal.dataset.clickedBackdrop = "false";
+        }
       });
+      modal.addEventListener('mouseup', (e) => {
+        if (modal.dataset.clickedBackdrop === "true" && e.target === modal) {
+          this.closeModals();
+        }
+        modal.dataset.clickedBackdrop = "false";
+      });
+    });
+
+    // 阻止對話框主體點擊冒泡
+    document.querySelectorAll('.modal-content-card').forEach(card => {
+      card.addEventListener('click', (e) => e.stopPropagation());
     });
   }
 
@@ -392,8 +418,8 @@ class SinglePrinterQueueApp {
                   <div class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300" style="width: ${printing.progress || 10}%"></div>
                 </div>
                 <div class="flex items-center justify-end gap-2 text-xs">
-                  <button onclick="app.updateProgress('${printing.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-colors">
-                    更新進度
+                  <button onclick="app.openJobModal('${printing.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition-colors">
+                    編輯 / 更新進度
                   </button>
                   <button onclick="app.markJobComplete('${printing.id}')" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors">
                     ✓ 完成並排入下一件
@@ -483,7 +509,6 @@ class SinglePrinterQueueApp {
         <div class="rounded-2xl p-4 sm:p-4.5 border transition-all ${isPrinting ? 'bg-slate-900/90 border-indigo-500/40 shadow-lg shadow-indigo-950/30' : (isCompleted ? 'bg-slate-950/40 border-slate-800/50 opacity-75' : 'bg-slate-900/50 border-slate-800/80 hover:border-slate-700')}">
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             
-            <!-- 5 大核心標示資訊區 -->
             <div class="flex-1 min-w-0 w-full">
               <div class="flex items-center flex-wrap gap-2 mb-2">
                 <span class="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold ${isPrinting ? 'bg-indigo-600 text-white' : (isQueued ? 'bg-slate-800 text-slate-300 border border-slate-700' : 'bg-slate-800/50 text-slate-500')}">
@@ -494,12 +519,10 @@ class SinglePrinterQueueApp {
                 ${dueBadge}
               </div>
 
-              <!-- 1. 模型名稱 -->
               <h3 class="text-base font-bold text-white mb-2 leading-snug hover:text-indigo-400 transition-colors">
                 ${job.modelName}
               </h3>
 
-              <!-- 2.提需求 3.3D檔提供 4.使用目的 5.需求日期 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1.5 text-xs text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
                 <div class="flex items-center gap-1.5">
                   <span class="text-slate-500 shrink-0">提需求人員:</span>
@@ -624,6 +647,7 @@ class SinglePrinterQueueApp {
 
     this.saveData();
     this.render();
+    this.showToast('✓ 已開始列印');
   }
 
   startNextJob() {
@@ -648,6 +672,7 @@ class SinglePrinterQueueApp {
 
     this.saveData();
     this.render();
+    this.showToast('✓ 模型已完工歸檔！');
 
     const next = this.queue.find(j => j.status === 'queued');
     if (next) {
@@ -664,22 +689,7 @@ class SinglePrinterQueueApp {
     job.progress = 0;
     this.saveData();
     this.render();
-  }
-
-  updateProgress(jobId) {
-    const job = this.queue.find(j => j.id === jobId);
-    if (!job) return;
-    const val = prompt('請輸入列印進度百分比 (0-100)：', job.progress || 50);
-    if (val !== null) {
-      const p = Math.min(100, Math.max(0, parseInt(val, 10) || 0));
-      job.progress = p;
-      if (p >= 100) {
-        this.markJobComplete(jobId);
-        return;
-      }
-      this.saveData();
-      this.render();
-    }
+    this.showToast('✓ 已重新排入佇列');
   }
 
   moveQueueOrder(jobId, direction) {
@@ -704,9 +714,9 @@ class SinglePrinterQueueApp {
     }
     this.saveData();
     this.render();
+    this.showToast('✓ 已刪除排程');
   }
 
-  // 清空所有排程
   clearAllJobs() {
     if (confirm('確定要清空目前所有的排程記錄嗎？清空後可完全從零開始填寫。')) {
       this.queue = [];
@@ -714,11 +724,12 @@ class SinglePrinterQueueApp {
       this.printer.currentJobId = null;
       this.saveData(true);
       this.render();
-      alert('已成功清空所有排程！');
+      this.showToast('✓ 已清空所有排程');
     }
   }
 
   openJobModal(jobId = null, defaultStatus = 'queued') {
+    this.isModalOpen = true; // 鎖定狀態：防止背景輪詢打斷輸入
     const modal = document.getElementById('job-modal');
     const form = document.getElementById('job-form');
     if (!modal || !form) return;
@@ -726,13 +737,16 @@ class SinglePrinterQueueApp {
     form.reset();
     document.getElementById('job-id-input').value = jobId || '';
 
+    // 進度輸入群組控制
+    const progressGroup = document.getElementById('job-progress-group');
+
     if (jobId) {
       const job = this.queue.find(j => j.id === jobId);
       if (job) {
         document.getElementById('job-modal-title').textContent = '編輯列印排程項目';
-        document.getElementById('job-name-input').value = job.modelName;
-        document.getElementById('job-requester-input').value = job.requester;
-        document.getElementById('job-provider-input').value = job.fileProvider;
+        document.getElementById('job-name-input').value = job.modelName || '';
+        document.getElementById('job-requester-input').value = job.requester || '';
+        document.getElementById('job-provider-input').value = job.fileProvider || '';
         document.getElementById('job-purpose-input').value = job.purpose || '';
         document.getElementById('job-duedate-input').value = job.dueDate || '';
         document.getElementById('job-material-input').value = job.material || 'PLA';
@@ -740,18 +754,25 @@ class SinglePrinterQueueApp {
         document.getElementById('job-priority-select').value = job.priority || 'normal';
         document.getElementById('job-status-select').value = job.status || 'queued';
         document.getElementById('job-notes-input').value = job.notes || '';
+
+        if (progressGroup) {
+          progressGroup.classList.toggle('hidden', job.status !== 'printing');
+          document.getElementById('job-progress-input').value = job.progress || 0;
+        }
       }
     } else {
       document.getElementById('job-modal-title').textContent = '排入待列印模型';
       document.getElementById('job-status-select').value = defaultStatus;
       const defaultDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
       document.getElementById('job-duedate-input').value = defaultDate;
+      if (progressGroup) progressGroup.classList.add('hidden');
     }
 
     modal.classList.remove('hidden');
   }
 
   openSyncModal() {
+    this.isModalOpen = true;
     const modal = document.getElementById('sync-modal');
     if (!modal) return;
 
@@ -793,7 +814,7 @@ class SinglePrinterQueueApp {
   copyMobileLink() {
     const url = this.getMobileSyncUrl();
     navigator.clipboard.writeText(url).then(() => {
-      alert('已複製手機專屬同步網址！可貼到 LINE 或記事本傳送至手機開啟。');
+      this.showToast('已複製專屬手機同步網址！');
     }).catch(() => {
       prompt('請手動複製此專屬手機連結：', url);
     });
@@ -814,13 +835,14 @@ class SinglePrinterQueueApp {
     localStorage.setItem('3d_print_sync_key', this.syncKey);
     localStorage.setItem('3d_print_custom_endpoint', this.customEndpoint);
 
-    alert('同步設定已儲存！');
     this.closeModals();
+    this.showToast('✓ 同步設定已儲存！');
     this.pullFromCloud();
     this.pushToCloud();
   }
 
   closeModals() {
+    this.isModalOpen = false;
     document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.add('hidden'));
   }
 
@@ -837,6 +859,7 @@ class SinglePrinterQueueApp {
     const priority = document.getElementById('job-priority-select').value;
     const status = document.getElementById('job-status-select').value;
     const notes = document.getElementById('job-notes-input').value.trim();
+    const progressVal = parseInt(document.getElementById('job-progress-input')?.value || '0', 10);
 
     if (!modelName || !requester || !fileProvider) {
       alert('請填寫模型名稱、提需求人員與 3D 檔案提供者！');
@@ -857,11 +880,24 @@ class SinglePrinterQueueApp {
         job.notes = notes;
         
         if (status === 'printing') {
-          this.startPrintingJob(job.id);
+          job.status = 'printing';
+          job.progress = Math.min(100, Math.max(0, progressVal || job.progress || 10));
+          this.printer.status = 'printing';
+          this.printer.currentJobId = job.id;
         } else if (status === 'completed') {
-          this.markJobComplete(job.id);
+          job.status = 'completed';
+          job.progress = 100;
+          job.completedAt = new Date().toISOString();
+          if (this.printer.currentJobId === job.id) {
+            this.printer.status = 'idle';
+            this.printer.currentJobId = null;
+          }
         } else {
           job.status = status;
+          if (this.printer.currentJobId === job.id) {
+            this.printer.status = 'idle';
+            this.printer.currentJobId = null;
+          }
         }
       }
     } else {
@@ -882,17 +918,36 @@ class SinglePrinterQueueApp {
       };
 
       if (status === 'printing') {
-        this.startPrintingJob(newJob.id);
         this.queue.unshift(newJob);
+        this.printer.status = 'printing';
+        this.printer.currentJobId = newJob.id;
       } else {
         this.queue.push(newJob);
       }
     }
 
-    localStorage.setItem('3d_print_last_local_update', Date.now().toString());
     this.saveData(true);
     this.closeModals();
     this.render();
+    this.showToast('✓ 排程已成功儲存！');
+  }
+
+  showToast(message) {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'app-toast';
+      toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium text-xs shadow-2xl transition-all transform translate-y-12 opacity-0 pointer-events-none flex items-center gap-2';
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${message}`;
+    toast.classList.remove('translate-y-12', 'opacity-0');
+    toast.classList.add('translate-y-0', 'opacity-100');
+
+    setTimeout(() => {
+      toast.classList.remove('translate-y-0', 'opacity-100');
+      toast.classList.add('translate-y-12', 'opacity-0');
+    }, 2500);
   }
 
   exportCSV() {
@@ -953,7 +1008,7 @@ class SinglePrinterQueueApp {
             if (data.syncKey) this.syncKey = data.syncKey;
             this.saveData(true);
             this.render();
-            alert('匯入備份成功！');
+            this.showToast('✓ 匯入成功！');
           }
         } else {
           alert('匯入失敗：JSON 格式不相符。');
