@@ -1,99 +1,24 @@
 /**
  * 單機專用 3D 列印佇列與排程系統 (3D Print Queue)
- * 支援 PC & 手機跨裝置即時雲端同步 (Cross-Device Cloud Sync)
+ * 專注排程佇列與交期追蹤 (PC & 手機即時雙向同步)
  */
 
-// 預設示範排程資料
+// 預設機台狀態 (閒置待命)
 const DEFAULT_PRINTER = {
   name: '工坊 3D 印表機',
-  status: 'printing', // 'idle' | 'printing' | 'maintenance'
-  currentJobId: 'job-001',
+  status: 'idle', // 'idle' | 'printing' | 'maintenance'
+  currentJobId: null,
   note: '日常運作正常，0.4mm 噴嘴'
 };
 
-const DEFAULT_QUEUE = [
-  {
-    id: 'job-001',
-    modelName: '智慧蘑菇夜燈外殼 (上蓋透光組件)',
-    requester: 'Kevin (產品經理)',
-    fileProvider: 'Sarah (工業設計師)',
-    purpose: '外觀評估與燈光透光均勻度測試',
-    dueDate: new Date(Date.now() + 1 * 86400000).toISOString().slice(0, 10),
-    material: 'PLA 霧面白',
-    estimatedHours: 5.5,
-    priority: 'urgent',
-    status: 'printing',
-    progress: 65,
-    notes: '0.16mm 層高，務必檢查首層無溢料',
-    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'job-002',
-    modelName: '產線測試夾治具固定底座',
-    requester: 'Terry (機構工程)',
-    fileProvider: 'Terry (機構工程)',
-    purpose: '治具產線定位，需高結構強度',
-    dueDate: new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10),
-    material: 'PETG 黑色',
-    estimatedHours: 4.0,
-    priority: 'urgent',
-    status: 'queued',
-    progress: 0,
-    notes: '填充 40% 蜂巢，強度要求高',
-    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'job-003',
-    modelName: '概念人體工學搖桿手把 (左右分件)',
-    requester: 'Alex (體驗設計)',
-    fileProvider: 'Alex (體驗設計)',
-    purpose: '握持手感評估與按鍵干涉測試',
-    dueDate: new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10),
-    material: 'PLA 灰色',
-    estimatedHours: 6.8,
-    priority: 'normal',
-    status: 'queued',
-    progress: 0,
-    notes: '需支撐，拆除時請小心邊緣倒角',
-    createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'job-004',
-    modelName: '展覽展示台造型銘牌',
-    requester: 'Emily (行銷公關)',
-    fileProvider: 'David (平面設計)',
-    purpose: '年度技術研討會展示樣品立牌',
-    dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-    material: 'PLA 絲綢金',
-    estimatedHours: 2.2,
-    priority: 'low',
-    status: 'queued',
-    progress: 0,
-    notes: '外觀件，表面不可有拉絲拉線',
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'job-000',
-    modelName: '馬達減速齒輪轉接座 (V2修訂版)',
-    requester: 'Terry (機構工程)',
-    fileProvider: 'Terry (機構工程)',
-    purpose: '傳動機構公差驗證',
-    dueDate: new Date(Date.now() - 1 * 86400000).toISOString().slice(0, 10),
-    material: 'PETG 黑色',
-    estimatedHours: 3.0,
-    priority: 'normal',
-    status: 'completed',
-    progress: 100,
-    notes: '列印完成且組裝順暢',
-    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString()
-  }
-];
+// 預設清單清空為空白（讓管理者從零填寫真實工單）
+const DEFAULT_QUEUE = [];
 
 class SinglePrinterQueueApp {
   constructor() {
     this.printer = DEFAULT_PRINTER;
     this.queue = [];
-    this.currentView = 'queue';
+    this.currentView = 'queue'; // 'queue' | 'history'
     this.searchQuery = '';
     this.filterStatus = 'all';
     this.filterPriority = 'all';
@@ -101,10 +26,9 @@ class SinglePrinterQueueApp {
     // 跨裝置雲端同步狀態
     this.syncKey = '';
     this.customEndpoint = '';
-    this.syncStatus = 'idle'; // 'idle' | 'syncing' | 'synced' | 'error' | 'offline'
+    this.syncStatus = 'idle';
     this.lastSyncedAt = null;
     this.syncTimer = null;
-    this.isLocalSaveInProgress = false;
 
     this.init();
   }
@@ -115,27 +39,22 @@ class SinglePrinterQueueApp {
     this.bindEvents();
     this.render();
 
-    // 啟動雲端自動同步
     if (this.syncKey) {
       this.pullFromCloud(true);
       this.startAutoSync();
     }
   }
 
-  // 1. 初始化管理者專屬同步金鑰
   initSyncKey() {
-    // 優先檢查網址參數 ?syncKey=xxx (手機掃碼進入時會自動帶入)
     const urlParams = new URLSearchParams(window.location.search);
     const keyFromUrl = urlParams.get('syncKey');
 
     if (keyFromUrl) {
       this.syncKey = keyFromUrl.trim();
       localStorage.setItem('3d_print_sync_key', this.syncKey);
-      // 清除網址欄醜陋的查詢字串（不重新整理），保持介面乾淨
       window.history.replaceState({}, document.title, window.location.pathname);
     } else {
       this.syncKey = localStorage.getItem('3d_print_sync_key') || '';
-      // 若尚未生成，則自動產生一組 8 碼英數金鑰
       if (!this.syncKey) {
         this.syncKey = this.generateRandomKey();
         localStorage.setItem('3d_print_sync_key', this.syncKey);
@@ -154,7 +73,6 @@ class SinglePrinterQueueApp {
     return result;
   }
 
-  // 2. 本機快取讀取與寫入
   loadData() {
     try {
       const storedQueue = localStorage.getItem('3d_single_printer_queue');
@@ -182,8 +100,6 @@ class SinglePrinterQueueApp {
     }
   }
 
-  // 3. 雲端同步核心模組 (Cloud Sync Engine)
-  // 使用兼具跨域 (CORS) 與高穩定性的免費端點儲存 JSON 物件
   async pushToCloud() {
     if (!this.syncKey) return;
     this.updateSyncUI('syncing', '正在同步至雲端...');
@@ -197,7 +113,6 @@ class SinglePrinterQueueApp {
 
     try {
       if (this.customEndpoint) {
-        // 自訂端點 (例如 Google Apps Script 或自建 Webhook)
         await fetch(this.customEndpoint, {
           method: 'POST',
           mode: 'cors',
@@ -205,9 +120,7 @@ class SinglePrinterQueueApp {
           body: JSON.stringify(payload)
         });
       } else {
-        // 內建免費雲端同步服務 (使用基於 KV/Object 的雲端快照)
         const endpoint = `https://api.restful-api.dev/objects`;
-        // 先嘗試使用已記錄的 cloudObjectId，若無則以 syncKey 建立或更新
         let cloudObjectId = localStorage.getItem(`cloud_obj_${this.syncKey}`);
         
         if (cloudObjectId) {
@@ -269,10 +182,6 @@ class SinglePrinterQueueApp {
             this.applyCloudData(result.data);
           }
         }
-      } else {
-        // 手機端第一次進入可能沒有 cloudObjectId，自動透過雲端查找
-        // 查找對應的 name 物件
-        this.updateSyncUI('synced', '已就緒');
       }
 
       this.lastSyncedAt = new Date();
@@ -286,14 +195,13 @@ class SinglePrinterQueueApp {
   applyCloudData(cloudData) {
     if (!cloudData || !Array.isArray(cloudData.queue)) return;
 
-    // 比對是否有更新（如果雲端比本機新，則更新本機）
     const localUpdatedAt = localStorage.getItem('3d_print_last_local_update') || '0';
     const cloudUpdatedAt = new Date(cloudData.updatedAt || 0).getTime();
 
     if (cloudUpdatedAt >= parseInt(localUpdatedAt, 10)) {
       this.queue = cloudData.queue;
       if (cloudData.printer) this.printer = cloudData.printer;
-      this.saveData(false); // 本地保存但不觸發反向推送
+      this.saveData(false);
       this.render();
     }
   }
@@ -301,14 +209,12 @@ class SinglePrinterQueueApp {
   startAutoSync() {
     if (this.syncTimer) clearInterval(this.syncTimer);
 
-    // 每 15 秒背景智慧輪詢雲端更新（確保 PC 與手機雙端隨時一致）
     this.syncTimer = setInterval(() => {
       if (document.visibilityState === 'visible') {
         this.pullFromCloud();
       }
     }, 15000);
 
-    // 當使用者在手機或 PC 切換回分頁時，立即拉取一次
     window.addEventListener('focus', () => {
       this.pullFromCloud();
     });
@@ -333,15 +239,10 @@ class SinglePrinterQueueApp {
       }
     }
 
-    if (label) {
-      label.textContent = message;
-    }
-    if (modalStatus) {
-      modalStatus.textContent = message;
-    }
+    if (label) label.textContent = message;
+    if (modalStatus) modalStatus.textContent = message;
   }
 
-  // 取得統計
   getStats() {
     const queuedItems = this.queue.filter(j => j.status === 'queued');
     const printingJob = this.queue.find(j => j.status === 'printing');
@@ -359,14 +260,12 @@ class SinglePrinterQueueApp {
   }
 
   bindEvents() {
-    // 視圖切換
     document.querySelectorAll('.view-tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.switchView(e.currentTarget.dataset.view);
       });
     });
 
-    // 搜尋與篩選
     document.getElementById('search-input')?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.trim().toLowerCase();
       this.renderCurrentView();
@@ -382,7 +281,6 @@ class SinglePrinterQueueApp {
       this.renderCurrentView();
     });
 
-    // 常用按鈕
     document.getElementById('btn-add-job')?.addEventListener('click', () => this.openJobModal());
     document.getElementById('btn-cloud-sync-modal')?.addEventListener('click', () => this.openSyncModal());
     document.getElementById('btn-export-csv')?.addEventListener('click', () => this.exportCSV());
@@ -391,16 +289,16 @@ class SinglePrinterQueueApp {
       document.getElementById('import-file-input')?.click();
     });
     document.getElementById('import-file-input')?.addEventListener('change', (e) => this.handleImportJSON(e));
-    document.getElementById('btn-reset-data')?.addEventListener('click', () => this.resetToDefault());
+    
+    // 清空所有排程
+    document.getElementById('btn-clear-all')?.addEventListener('click', () => this.clearAllJobs());
 
-    // 同步 Modal 按鈕
     document.getElementById('btn-manual-sync')?.addEventListener('click', () => {
       this.pullFromCloud();
       this.pushToCloud();
     });
     document.getElementById('btn-copy-mobile-link')?.addEventListener('click', () => this.copyMobileLink());
 
-    // Modal 關閉
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
       btn.addEventListener('click', () => this.closeModals());
     });
@@ -437,7 +335,6 @@ class SinglePrinterQueueApp {
     this.renderCurrentView();
   }
 
-  // 頂部單一機台即時狀態 Banner
   renderPrinterHero() {
     const stats = this.getStats();
     const heroContainer = document.getElementById('printer-status-hero');
@@ -528,14 +425,11 @@ class SinglePrinterQueueApp {
   renderCurrentView() {
     if (this.currentView === 'queue') {
       this.renderQueueView();
-    } else if (this.currentView === 'kanban') {
-      this.renderKanbanView();
     } else if (this.currentView === 'history') {
       this.renderHistoryView();
     }
   }
 
-  // 1. 排程佇列清單 (Queue View)
   renderQueueView() {
     const container = document.getElementById('queue-list-container');
     if (!container) return;
@@ -559,15 +453,16 @@ class SinglePrinterQueueApp {
       items = items.filter(j => j.priority === this.filterPriority);
     }
 
-    const statusWeight = { printing: 1, queued: 2, failed: 3, completed: 4 };
+    const statusWeight = { printing: 1, queued: 2, completed: 3 };
     items = [...items].sort((a, b) => (statusWeight[a.status] || 99) - (statusWeight[b.status] || 99));
 
     if (items.length === 0) {
       container.innerHTML = `
         <div class="py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
           <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-          <p class="text-base font-medium">目前沒有符合條件的列印排程</p>
-          <button onclick="app.openJobModal()" class="mt-3 px-4 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all">排入第一件模型</button>
+          <p class="text-base font-medium">目前沒有待列印模型排程</p>
+          <p class="text-xs text-slate-600 mt-1">點擊上方「+ 排入待印模型」開始建立第一筆排程</p>
+          <button onclick="app.openJobModal()" class="mt-4 px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-md shadow-indigo-600/30">+ 排入第一件模型</button>
         </div>
       `;
       return;
@@ -579,7 +474,7 @@ class SinglePrinterQueueApp {
       const isPrinting = job.status === 'printing';
       const isCompleted = job.status === 'completed';
       const isQueued = job.status === 'queued';
-      const orderLabel = isPrinting ? '當前列印' : (isQueued ? `排隊 #${queueOrderNumber++}` : (isCompleted ? '已完成' : '待重印'));
+      const orderLabel = isPrinting ? '當前列印' : (isQueued ? `排隊 #${queueOrderNumber++}` : '已完成');
 
       const dueDays = this.getDaysUntilDue(job.dueDate);
       const dueBadge = this.getDueBadge(job.dueDate, dueDays, isCompleted);
@@ -634,7 +529,7 @@ class SinglePrinterQueueApp {
               </div>
             </div>
 
-            <!-- 操作區 (手機上大按鈕方便點擊) -->
+            <!-- 操作區 -->
             <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
               
               <div class="flex items-center gap-2">
@@ -685,97 +580,6 @@ class SinglePrinterQueueApp {
     }).join('');
   }
 
-  // 2. 看板視角 (Kanban View)
-  renderKanbanView() {
-    const columns = [
-      { id: 'queued', title: '待列印排隊中 (Queued)', badge: 'bg-blue-900/60 text-blue-300' },
-      { id: 'printing', title: '正在列印 (Printing)', badge: 'bg-indigo-900/60 text-indigo-300' },
-      { id: 'completed', title: '已完工 (Completed)', badge: 'bg-emerald-900/60 text-emerald-300' },
-      { id: 'failed', title: '異常重印 (Failed)', badge: 'bg-rose-900/60 text-rose-300' }
-    ];
-
-    const container = document.getElementById('kanban-board');
-    if (!container) return;
-
-    let items = this.queue;
-    if (this.searchQuery) {
-      items = items.filter(j =>
-        j.modelName.toLowerCase().includes(this.searchQuery) ||
-        j.requester.toLowerCase().includes(this.searchQuery) ||
-        j.fileProvider.toLowerCase().includes(this.searchQuery)
-      );
-    }
-
-    container.innerHTML = columns.map(col => {
-      const colItems = items.filter(j => j.status === col.id);
-
-      return `
-        <div class="kanban-column rounded-2xl p-4 flex flex-col" data-status="${col.id}" ondragover="app.handleDragOver(event)" ondragleave="app.handleDragLeave(event)" ondrop="app.handleDrop(event, '${col.id}')">
-          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800">
-            <h4 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
-              <span>${col.title}</span>
-              <span class="text-xs px-2 py-0.5 rounded-full font-mono font-bold ${col.badge}">
-                ${colItems.length}
-              </span>
-            </h4>
-            <button onclick="app.openJobModal(null, '${col.id}')" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white" title="新增工單">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            </button>
-          </div>
-
-          <div class="flex-1 space-y-3 overflow-y-auto pr-1">
-            ${colItems.map(job => this.renderKanbanCard(job)).join('')}
-            ${colItems.length === 0 ? `
-              <div class="h-28 flex items-center justify-center border border-dashed border-slate-800 rounded-xl text-xs text-slate-600">
-                拖曳至此處
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  renderKanbanCard(job) {
-    return `
-      <div class="kanban-card rounded-xl p-3.5 shadow-sm group" draggable="true" ondragstart="app.handleDragStart(event, '${job.id}')" ondragend="app.handleDragEnd(event)">
-        <div class="flex items-start justify-between gap-2 mb-1.5">
-          ${this.getPriorityBadge(job.priority)}
-          <span class="text-[10px] font-mono text-amber-300 font-semibold">${job.dueDate || ''}</span>
-        </div>
-
-        <h5 class="font-bold text-slate-100 text-sm mb-1.5 line-clamp-2">
-          ${job.modelName}
-        </h5>
-
-        <div class="text-xs text-slate-400 space-y-1 mb-2 bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-          <div class="flex items-center justify-between">
-            <span class="text-slate-500">提需求:</span>
-            <span class="text-slate-200 font-medium">${job.requester}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-slate-500">3D檔提供:</span>
-            <span class="text-indigo-300 font-medium">${job.fileProvider}</span>
-          </div>
-          <div class="text-[11px] text-slate-400 truncate" title="${job.purpose}">
-            <span class="text-slate-500">目的:</span> ${job.purpose || '一般測試'}
-          </div>
-        </div>
-
-        <div class="pt-2 border-t border-slate-700/50 flex items-center justify-between">
-          <select onchange="app.moveJobStatus('${job.id}', this.value)" class="text-[11px] bg-slate-900 text-slate-300 border border-slate-700 rounded px-1.5 py-0.5">
-            <option value="queued" ${job.status === 'queued' ? 'selected' : ''}>排隊佇列</option>
-            <option value="printing" ${job.status === 'printing' ? 'selected' : ''}>正在列印</option>
-            <option value="completed" ${job.status === 'completed' ? 'selected' : ''}>完工歸檔</option>
-            <option value="failed" ${job.status === 'failed' ? 'selected' : ''}>異常重印</option>
-          </select>
-          <button onclick="app.openJobModal('${job.id}')" class="text-xs text-slate-400 hover:text-white">編輯</button>
-        </div>
-      </div>
-    `;
-  }
-
-  // 3. 完工歷史表格 (History View)
   renderHistoryView() {
     const tbody = document.getElementById('history-table-body');
     if (!tbody) return;
@@ -801,7 +605,6 @@ class SinglePrinterQueueApp {
     `).join('');
   }
 
-  // 業務操作
   startPrintingJob(jobId) {
     const currentPrinting = this.queue.find(j => j.status === 'printing');
     if (currentPrinting && currentPrinting.id !== jobId) {
@@ -879,28 +682,6 @@ class SinglePrinterQueueApp {
     }
   }
 
-  moveJobStatus(jobId, newStatus) {
-    const job = this.queue.find(j => j.id === jobId);
-    if (!job) return;
-
-    if (newStatus === 'printing') {
-      this.startPrintingJob(jobId);
-      return;
-    } else if (newStatus === 'completed') {
-      this.markJobComplete(jobId);
-      return;
-    }
-
-    if (job.status === 'printing') {
-      this.printer.status = 'idle';
-      this.printer.currentJobId = null;
-    }
-
-    job.status = newStatus;
-    this.saveData();
-    this.render();
-  }
-
   moveQueueOrder(jobId, direction) {
     const index = this.queue.findIndex(j => j.id === jobId);
     if (index === -1) return;
@@ -925,35 +706,18 @@ class SinglePrinterQueueApp {
     this.render();
   }
 
-  // 拖曳 (Drag & Drop)
-  handleDragStart(e, jobId) {
-    e.dataTransfer.setData('text/plain', jobId);
-    e.currentTarget.classList.add('dragging');
-  }
-
-  handleDragEnd(e) {
-    e.currentTarget.classList.remove('dragging');
-  }
-
-  handleDragOver(e) {
-    e.preventDefault();
-    e.currentTarget.classList.add('drag-over');
-  }
-
-  handleDragLeave(e) {
-    e.currentTarget.classList.remove('drag-over');
-  }
-
-  handleDrop(e, targetStatus) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('drag-over');
-    const jobId = e.dataTransfer.getData('text/plain');
-    if (jobId) {
-      this.moveJobStatus(jobId, targetStatus);
+  // 清空所有排程
+  clearAllJobs() {
+    if (confirm('確定要清空目前所有的排程記錄嗎？清空後可完全從零開始填寫。')) {
+      this.queue = [];
+      this.printer.status = 'idle';
+      this.printer.currentJobId = null;
+      this.saveData(true);
+      this.render();
+      alert('已成功清空所有排程！');
     }
   }
 
-  // Modal 控制
   openJobModal(jobId = null, defaultStatus = 'queued') {
     const modal = document.getElementById('job-modal');
     const form = document.getElementById('job-form');
@@ -987,7 +751,6 @@ class SinglePrinterQueueApp {
     modal.classList.remove('hidden');
   }
 
-  // 跨裝置同步中心 Modal
   openSyncModal() {
     const modal = document.getElementById('sync-modal');
     if (!modal) return;
@@ -995,19 +758,15 @@ class SinglePrinterQueueApp {
     document.getElementById('sync-key-input').value = this.syncKey;
     document.getElementById('custom-endpoint-input').value = this.customEndpoint;
 
-    // 產生手機專屬網址
     const mobileUrl = this.getMobileSyncUrl();
     const linkDisplay = document.getElementById('mobile-link-display');
     if (linkDisplay) linkDisplay.value = mobileUrl;
 
-    // 渲染 QR Code
     this.renderQrCode(mobileUrl);
-
     modal.classList.remove('hidden');
   }
 
   getMobileSyncUrl() {
-    // 獲取當前頁面乾淨基礎網址
     let baseUrl = window.location.href.split('?')[0].split('#')[0];
     return `${baseUrl}?syncKey=${encodeURIComponent(this.syncKey)}`;
   }
@@ -1055,7 +814,7 @@ class SinglePrinterQueueApp {
     localStorage.setItem('3d_print_sync_key', this.syncKey);
     localStorage.setItem('3d_print_custom_endpoint', this.customEndpoint);
 
-    alert('同步設定已儲存！即刻嘗試與雲端連線...');
+    alert('同步設定已儲存！');
     this.closeModals();
     this.pullFromCloud();
     this.pushToCloud();
@@ -1096,7 +855,14 @@ class SinglePrinterQueueApp {
         job.estimatedHours = estimatedHours;
         job.priority = priority;
         job.notes = notes;
-        this.moveJobStatus(job.id, status);
+        
+        if (status === 'printing') {
+          this.startPrintingJob(job.id);
+        } else if (status === 'completed') {
+          this.markJobComplete(job.id);
+        } else {
+          job.status = status;
+        }
       }
     } else {
       const newJob = {
@@ -1129,7 +895,6 @@ class SinglePrinterQueueApp {
     this.render();
   }
 
-  // 匯出 / 匯入
   exportCSV() {
     const headers = ['模型名稱', '提需求人員', '3D檔案提供者', '使用目的', '需求日期', '耗材規格', '預估時數(h)', '優先級', '目前狀態', '建立時間', '備註'];
     const rows = this.queue.map(j => [
@@ -1201,17 +966,6 @@ class SinglePrinterQueueApp {
     reader.readAsText(file);
   }
 
-  resetToDefault() {
-    if (confirm('確定重設為示範排程資料嗎？現有資料將被示範清單取代。')) {
-      this.queue = JSON.parse(JSON.stringify(DEFAULT_QUEUE));
-      this.printer = JSON.parse(JSON.stringify(DEFAULT_PRINTER));
-      this.saveData(true);
-      this.render();
-      alert('已重設為示範資料！');
-    }
-  }
-
-  // 標籤樣式輔助
   getPriorityBadge(p) {
     if (p === 'urgent') {
       return '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-rose-950/80 text-rose-400 border border-rose-800/80 uppercase">緊急 Urgent</span>';
@@ -1226,14 +980,12 @@ class SinglePrinterQueueApp {
       return '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-950/80 text-indigo-300 border border-indigo-700/80 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>正在列印</span>';
     } else if (status === 'completed') {
       return '<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/60">已完成</span>';
-    } else if (status === 'failed') {
-      return '<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-rose-950/60 text-rose-300 border border-rose-800/60">待重印</span>';
     }
     return '<span class="px-2 py-0.5 text-[10px] font-medium rounded bg-blue-950/60 text-blue-300 border border-blue-800/60">排隊中</span>';
   }
 
   getStatusLabel(s) {
-    const map = { queued: '排隊中', printing: '列印中', completed: '已完成', failed: '異常重印' };
+    const map = { queued: '排隊中', printing: '列印中', completed: '已完成' };
     return map[s] || s;
   }
 

@@ -1,4 +1,4 @@
-/* 3D 列印排程與單機專用樣式 */
+/* 3D 列印單機專用排程樣式 */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
@@ -79,20 +79,6 @@ body {
   }
 }
 
-/* 雲端同步動態旋轉 */
-@keyframes spin-sync {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.sync-spinning {
-  animation: spin-sync 1s linear infinite;
-}
-
 /* 自訂滑動捲軸 */
 ::-webkit-scrollbar {
   width: 6px;
@@ -107,32 +93,6 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #4b5563;
-}
-
-/* 看板卡片拖曳與過渡 */
-.kanban-column {
-  min-height: 480px;
-  background: rgba(17, 24, 39, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.kanban-card {
-  cursor: grab;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.kanban-card:active {
-  cursor: grabbing;
-}
-.kanban-card.dragging {
-  opacity: 0.4;
-  transform: scale(0.98);
-}
-
-.kanban-column.drag-over {
-  background: rgba(59, 130, 246, 0.08);
-  border-color: rgba(59, 130, 246, 0.4);
 }
 
 /* QR Code 容器白色外框確保掃描成功 */
