@@ -379,16 +379,22 @@ class SinglePrinterQueueApp {
       const isCompleted = job.status === 'completed';
       const isQueued = job.status === 'queued';
 
+      const statusBadgeHtml = isPrinting
+        ? `<span class="px-3 py-1 rounded-full text-xs font-bold bg-indigo-600 text-white shadow-sm flex items-center gap-1.5 shrink-0"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span>正在列印</span>`
+        : (isQueued ? `<span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-white text-indigo-700 border border-white/90 shadow-sm shrink-0">#${queueOrderNumber++}</span>` : '');
+
       return `
         <div class="p-4 sm:p-5 transition-all ${isPrinting ? 'liquid-card-printing' : (isCompleted ? 'liquid-card opacity-70' : 'liquid-card')}">
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             
             <div class="flex-1 min-w-0 w-full">
-              <!-- 模型名稱 -->
-              <h3 class="text-base font-extrabold text-slate-900 mb-2.5 leading-snug flex items-center gap-2">
-                ${isPrinting ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white shadow-sm flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span>正在列印</span>' : (isQueued ? `<span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white/70 text-slate-600 border border-white/90 shadow-sm shrink-0">#${queueOrderNumber++}</span>` : '')}
-                <span class="truncate">${job.modelName}</span>
-              </h3>
+              <!-- 前方標示：正在列印 或 序號(#1, #2...) + 模型名稱 -->
+              <div class="flex items-center gap-2.5 mb-2.5">
+                ${statusBadgeHtml}
+                <h3 class="text-base font-extrabold text-slate-900 leading-snug truncate" title="${job.modelName}">
+                  ${job.modelName}
+                </h3>
+              </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 text-xs text-slate-600 liquid-inner-box p-3.5">
                 <div class="flex items-center gap-1.5">
@@ -415,9 +421,10 @@ class SinglePrinterQueueApp {
             </div>
 
             <!-- 操作區 -->
-            <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/60">
+            <div class="flex items-center justify-end w-full md:w-auto gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/60">
               
-              <div class="flex items-center gap-2">
+              <!-- 狀態變更 (開始列印 / 完工歸檔) -->
+              <div class="flex items-center gap-1.5">
                 ${isQueued ? `
                   <button onclick="app.startPrintingJob('${job.id}')" class="liquid-pill-violet px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
@@ -433,20 +440,20 @@ class SinglePrinterQueueApp {
                 ` : ''}
               </div>
 
-              <!-- 順位上移 / 下移 / 編輯 / 刪除 (實體白浮雕微膠囊) -->
+              <!-- 調整排序箭頭 (⬆ / ⬇) 與 編輯、刪除按鈕 -->
               <div class="flex items-center gap-1.5">
-                ${isQueued ? `
-                  <button onclick="app.moveQueueOrder('${job.id}', -1)" title="優先順序往前移" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                ${!isCompleted ? `
+                  <button onclick="app.moveQueueOrder('${job.id}', -1)" title="順序往前移" class="liquid-pill-white p-2 text-slate-700 hover:text-indigo-600 transition-colors flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path></svg>
                   </button>
-                  <button onclick="app.moveQueueOrder('${job.id}', 1)" title="優先順序往後移" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  <button onclick="app.moveQueueOrder('${job.id}', 1)" title="順序往後移" class="liquid-pill-white p-2 text-slate-700 hover:text-indigo-600 transition-colors flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                 ` : ''}
-                <button onclick="app.openJobModal('${job.id}')" title="編輯工單" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
+                <button onclick="app.openJobModal('${job.id}')" title="編輯工單" class="liquid-pill-white p-2 text-slate-700 hover:text-indigo-600 transition-colors flex items-center justify-center">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                 </button>
-                <button onclick="app.deleteJob('${job.id}')" title="刪除" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-rose-600 transition-colors">
+                <button onclick="app.deleteJob('${job.id}')" title="刪除" class="liquid-pill-white p-2 text-slate-700 hover:text-rose-600 transition-colors flex items-center justify-center">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
               </div>
@@ -477,8 +484,16 @@ class SinglePrinterQueueApp {
         <td class="py-3.5 px-4 text-xs font-bold text-indigo-600">${j.fileProvider}</td>
         <td class="py-3.5 px-4 text-xs text-slate-600 max-w-xs truncate" title="${j.purpose}">${j.purpose}</td>
         <td class="py-3.5 px-4 text-xs font-mono font-bold text-amber-600">${j.dueDate}</td>
-        <td class="py-3.5 px-4 text-xs text-right">
-          <button onclick="app.requeueJob('${j.id}')" class="liquid-pill-white px-3 py-1 text-xs font-semibold text-slate-700">再次列印</button>
+        <td class="py-3.5 px-4 text-xs text-right whitespace-nowrap">
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="app.requeueJob('${j.id}')" title="重新排入列印排程" class="liquid-pill-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-indigo-600 transition-colors flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+              重新排隊
+            </button>
+            <button onclick="app.deleteJob('${j.id}')" title="從歷史記錄中刪除" class="liquid-pill-white p-1.5 text-slate-700 hover:text-rose-600 transition-colors flex items-center justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
         </td>
       </tr>
     `).join('');
