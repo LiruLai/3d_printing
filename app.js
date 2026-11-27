@@ -298,6 +298,29 @@ class SinglePrinterQueueApp {
     document.getElementById('job-form')?.addEventListener('submit', (e) => this.handleJobSubmit(e));
     document.getElementById('sync-form')?.addEventListener('submit', (e) => this.handleSyncSave(e));
 
+    // 需求日期與「待定」核取按鈕連動
+    const dateInput = document.getElementById('job-duedate-input');
+    const tbdCheck = document.getElementById('job-duedate-tbd');
+    if (dateInput && tbdCheck) {
+      tbdCheck.addEventListener('change', () => {
+        if (tbdCheck.checked) {
+          dateInput.value = '';
+          dateInput.disabled = true;
+          dateInput.classList.add('opacity-40');
+        } else {
+          dateInput.disabled = false;
+          dateInput.classList.remove('opacity-40');
+        }
+      });
+      dateInput.addEventListener('focus', () => {
+        if (tbdCheck.checked) {
+          tbdCheck.checked = false;
+          dateInput.disabled = false;
+          dateInput.classList.remove('opacity-40');
+        }
+      });
+    }
+
     // 點擊 Modal 外部遮罩關閉 (加上確認機制，防止打字誤觸跳掉)
     document.querySelectorAll('.modal-backdrop').forEach(modal => {
       modal.addEventListener('mousedown', (e) => {
@@ -619,33 +642,38 @@ class SinglePrinterQueueApp {
         document.getElementById('job-requester-input').value = job.requester || '';
         document.getElementById('job-provider-input').value = job.fileProvider || '';
         document.getElementById('job-purpose-input').value = job.purpose || '';
-        document.getElementById('job-duedate-input').value = job.dueDate || '';
+        
+        // 需求日期與待定判斷
+        const dateInput = document.getElementById('job-duedate-input');
+        const tbdCheck = document.getElementById('job-duedate-tbd');
+        if (job.dueDate === '待定' || !job.dueDate) {
+          if (dateInput) { dateInput.value = ''; dateInput.disabled = true; dateInput.classList.add('opacity-40'); }
+          if (tbdCheck) tbdCheck.checked = true;
+        } else {
+          if (dateInput) { dateInput.value = job.dueDate; dateInput.disabled = false; dateInput.classList.remove('opacity-40'); }
+          if (tbdCheck) tbdCheck.checked = false;
+        }
+
         const mat = (job.material || 'PLA').toUpperCase();
         const plaCheck = document.getElementById('mat-pla');
         const petgCheck = document.getElementById('mat-petg');
         if (plaCheck) plaCheck.checked = mat.includes('PLA');
         if (petgCheck) petgCheck.checked = mat.includes('PETG');
 
-        document.getElementById('job-hours-input').value = job.estimatedHours || 2.0;
-        document.getElementById('job-priority-select').value = job.priority || 'normal';
-        document.getElementById('job-status-select').value = job.status || 'queued';
         document.getElementById('job-notes-input').value = job.notes || '';
-
-        if (progressGroup) {
-          progressGroup.classList.toggle('hidden', job.status !== 'printing');
-          document.getElementById('job-progress-input').value = job.progress || 0;
-        }
       }
     } else {
       document.getElementById('job-modal-title').textContent = '排入待列印模型';
-      document.getElementById('job-status-select').value = defaultStatus;
       const defaultDate = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-      document.getElementById('job-duedate-input').value = defaultDate;
+      const dateInput = document.getElementById('job-duedate-input');
+      const tbdCheck = document.getElementById('job-duedate-tbd');
+      if (dateInput) { dateInput.value = defaultDate; dateInput.disabled = false; dateInput.classList.remove('opacity-40'); }
+      if (tbdCheck) tbdCheck.checked = false;
+
       const plaCheck = document.getElementById('mat-pla');
       const petgCheck = document.getElementById('mat-petg');
       if (plaCheck) plaCheck.checked = true;
       if (petgCheck) petgCheck.checked = false;
-      if (progressGroup) progressGroup.classList.add('hidden');
     }
 
     modal.classList.remove('hidden');
@@ -733,7 +761,12 @@ class SinglePrinterQueueApp {
     const requester = document.getElementById('job-requester-input').value.trim();
     const fileProvider = document.getElementById('job-provider-input').value.trim();
     const purpose = document.getElementById('job-purpose-input').value.trim();
-    const dueDate = document.getElementById('job-duedate-input').value;
+    // 需求日期與待定判斷
+    const isTbd = document.getElementById('job-duedate-tbd')?.checked;
+    let dueDate = document.getElementById('job-duedate-input')?.value || '';
+    if (isTbd || !dueDate) {
+      dueDate = '待定';
+    }
     
     // 取得材料複選選項
     const isPla = document.getElementById('mat-pla')?.checked;
@@ -749,11 +782,7 @@ class SinglePrinterQueueApp {
       material = 'PLA'; // 若皆未勾選，預設 PLA
     }
 
-    const estimatedHours = parseFloat(document.getElementById('job-hours-input').value) || 1.0;
-    const priority = document.getElementById('job-priority-select').value;
-    const status = document.getElementById('job-status-select').value;
-    const notes = document.getElementById('job-notes-input').value.trim();
-    const progressVal = parseInt(document.getElementById('job-progress-input')?.value || '0', 10);
+    const notes = document.getElementById('job-notes-input')?.value.trim() || '';
 
     if (!modelName || !requester || !fileProvider) {
       alert('請填寫模型名稱、提需求人員與 3D 檔案提供者！');
@@ -769,30 +798,7 @@ class SinglePrinterQueueApp {
         job.purpose = purpose;
         job.dueDate = dueDate;
         job.material = material;
-        job.estimatedHours = estimatedHours;
-        job.priority = priority;
         job.notes = notes;
-        
-        if (status === 'printing') {
-          job.status = 'printing';
-          job.progress = Math.min(100, Math.max(0, progressVal || job.progress || 10));
-          this.printer.status = 'printing';
-          this.printer.currentJobId = job.id;
-        } else if (status === 'completed') {
-          job.status = 'completed';
-          job.progress = 100;
-          job.completedAt = new Date().toISOString();
-          if (this.printer.currentJobId === job.id) {
-            this.printer.status = 'idle';
-            this.printer.currentJobId = null;
-          }
-        } else {
-          job.status = status;
-          if (this.printer.currentJobId === job.id) {
-            this.printer.status = 'idle';
-            this.printer.currentJobId = null;
-          }
-        }
       }
     } else {
       const newJob = {
@@ -803,21 +809,15 @@ class SinglePrinterQueueApp {
         purpose,
         dueDate,
         material: material || 'PLA',
-        estimatedHours,
-        priority,
-        status,
-        progress: status === 'printing' ? 10 : 0,
+        estimatedHours: 0,
+        priority: 'normal',
+        status: 'queued',
+        progress: 0,
         notes,
         createdAt: new Date().toISOString()
       };
 
-      if (status === 'printing') {
-        this.queue.unshift(newJob);
-        this.printer.status = 'printing';
-        this.printer.currentJobId = newJob.id;
-      } else {
-        this.queue.push(newJob);
-      }
+      this.queue.push(newJob);
     }
 
     this.saveData(true);

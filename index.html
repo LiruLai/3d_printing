@@ -170,58 +170,30 @@
           <input type="text" id="job-purpose-input" placeholder="例如：機構干涉驗證、客戶外觀樣品、產線夾治具..." class="w-full liquid-input px-3.5 py-2 text-sm">
         </div>
 
-        <!-- 5. 需求日期 & 預估工時 -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">需求日期 (期望交期)</label>
-            <input type="date" id="job-duedate-input" class="w-full liquid-input px-3.5 py-2 text-sm font-mono">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">預估列印工時 (小時)</label>
-            <input type="number" id="job-hours-input" step="0.1" min="0.1" value="3.0" class="w-full liquid-input px-3.5 py-2 text-sm font-mono">
-          </div>
-        </div>
-
-        <!-- 耗材規格 & 優先級 & 狀態 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1.5">材料選擇 (可複選) *</label>
-            <div class="flex items-center gap-2">
-              <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/70 border border-white/90 cursor-pointer hover:bg-white shadow-sm transition-all has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white">
-                <input type="checkbox" id="mat-pla" value="PLA" class="accent-indigo-500 w-4 h-4 rounded">
-                <span class="text-xs font-bold">PLA</span>
-              </label>
-              <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/70 border border-white/90 cursor-pointer hover:bg-white shadow-sm transition-all has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white">
-                <input type="checkbox" id="mat-petg" value="PETG" class="accent-indigo-500 w-4 h-4 rounded">
-                <span class="text-xs font-bold">PETG</span>
-              </label>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">優先順位</label>
-            <select id="job-priority-select" class="w-full liquid-input px-3 py-2 text-sm">
-              <option value="urgent">緊急 Urgent (插隊優先)</option>
-              <option value="normal" selected>一般 Normal</option>
-              <option value="low">低優先 Low (有空再印)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">目前狀態</label>
-            <select id="job-status-select" class="w-full liquid-input px-3 py-2 text-sm">
-              <option value="queued" selected>排隊佇列中</option>
-              <option value="printing">正在列印</option>
-              <option value="completed">已完成</option>
-            </select>
+        <!-- 需求日期 (可選日期或勾選「待定」) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">需求日期 (期望交期)</label>
+          <div class="flex items-center gap-2.5">
+            <input type="date" id="job-duedate-input" class="flex-1 liquid-input px-3.5 py-2 text-sm font-mono">
+            <label class="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/70 border border-white/90 cursor-pointer hover:bg-white shadow-sm transition-all has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white shrink-0">
+              <input type="checkbox" id="job-duedate-tbd" class="accent-indigo-500 w-4 h-4 rounded">
+              <span class="text-xs font-bold">待定</span>
+            </label>
           </div>
         </div>
 
-        <!-- 當前列印進度 (僅在 printing 狀態時顯示) -->
-        <div id="job-progress-group" class="hidden">
-          <label class="block text-xs font-semibold text-slate-700 mb-1">列印進度百分比 (0-100%)</label>
-          <div class="flex items-center gap-3">
-            <input type="range" id="job-progress-range" min="0" max="100" value="0" oninput="document.getElementById('job-progress-input').value = this.value" class="flex-1 accent-indigo-600">
-            <input type="number" id="job-progress-input" min="0" max="100" value="0" oninput="document.getElementById('job-progress-range').value = this.value" class="w-20 liquid-input px-2.5 py-1.5 text-xs text-center font-mono font-bold">
-            <span class="text-xs text-slate-500 font-mono font-bold">%</span>
+        <!-- 材料選擇 (可複選) -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">材料選擇 (可複選) *</label>
+          <div class="flex items-center gap-2">
+            <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/70 border border-white/90 cursor-pointer hover:bg-white shadow-sm transition-all has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white">
+              <input type="checkbox" id="mat-pla" value="PLA" class="accent-indigo-500 w-4 h-4 rounded">
+              <span class="text-xs font-bold">PLA</span>
+            </label>
+            <label class="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/70 border border-white/90 cursor-pointer hover:bg-white shadow-sm transition-all has-[:checked]:bg-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:text-white">
+              <input type="checkbox" id="mat-petg" value="PETG" class="accent-indigo-500 w-4 h-4 rounded">
+              <span class="text-xs font-bold">PETG</span>
+            </label>
           </div>
         </div>
 
@@ -235,8 +207,8 @@
           <button type="button" class="modal-close-btn px-4 py-2 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-white/60 transition-colors">
             取消
           </button>
-          <button type="submit" class="liquid-pill-violet px-5 py-2 text-xs font-semibold">
-            排入排程
+          <button type="submit" id="job-submit-btn" class="liquid-pill-violet px-6 py-2 text-xs font-bold tracking-wide">
+            確認
           </button>
         </div>
       </form>
@@ -313,6 +285,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261127_03"></script>
+  <script src="app.js?v=20261127_04"></script>
 </body>
 </html>
