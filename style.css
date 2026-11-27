@@ -1,23 +1,192 @@
-/* 3D 列印單機專用排程樣式 */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Liquid Glass Kit 風格樣式系統 */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  
+  /* 暖調燕麥奶白環境底色 */
+  --bg-warm: #ece7df;
+  --bg-warm-secondary: #e5ded4;
+  
+  /* 厚玻璃邊緣與陰影 */
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 20px 45px -12px rgba(120, 100, 90, 0.18), 0 8px 16px -6px rgba(120, 100, 90, 0.1);
+  --glass-inset: inset 0 1.5px 2px rgba(255, 255, 255, 0.95), inset 0 -1.5px 2px rgba(0, 0, 0, 0.04);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #0b0f19;
-  color: #e2e8f0;
+  background-color: var(--bg-warm);
+  background-image: 
+    radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.85) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(216, 230, 248, 0.5) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(246, 215, 225, 0.45) 0%, transparent 50%),
+    radial-gradient(circle at 80% 90%, rgba(200, 240, 235, 0.4) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: #1e2229;
+  min-height: 100vh;
+}
+
+/* 主面板厚玻璃質感 (Liquid Glass Panel) */
+.liquid-glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+  border-radius: 28px;
+}
+
+/* 排程卡片液態玻璃感 */
+.liquid-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 12px 28px -8px rgba(120, 105, 95, 0.12), inset 0 1px 1.5px rgba(255, 255, 255, 0.95);
+  border-radius: 22px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 16px 36px -10px rgba(120, 105, 95, 0.16), inset 0 1px 2px rgba(255, 255, 255, 1);
+}
+
+/* 正在列印中的卡片：彩虹折射極光效果 (Aurora Prism Caustics) */
+.liquid-card-printing {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78) 0%, rgba(230, 242, 255, 0.7) 50%, rgba(250, 230, 245, 0.7) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 16px 36px -8px rgba(130, 110, 190, 0.22),
+    0 0 25px rgba(180, 210, 255, 0.35),
+    inset 0 1.5px 2px rgba(255, 255, 255, 1);
+}
+
+/* 卡片內部的磨砂資料塊 */
+.liquid-inner-box {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+  border-radius: 16px;
+}
+
+/* 紫羅蘭果凍膠囊按鈕 (Violet Liquid Pill) */
+.liquid-pill-violet {
+  background: linear-gradient(180deg, #886ef8 0%, #6849e8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 
+    0 10px 22px -5px rgba(104, 73, 232, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.6),
+    inset 0 -1.5px 1.5px rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.liquid-pill-violet:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 14px 28px -6px rgba(104, 73, 232, 0.55),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.75);
+}
+
+.liquid-pill-violet:active {
+  transform: translateY(1px);
+}
+
+/* 湖水綠果凍膠囊按鈕 (Cyan / Mint Liquid Pill) */
+.liquid-pill-mint {
+  background: linear-gradient(180deg, #4ed9c5 0%, #2bb8a2 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 
+    0 10px 22px -5px rgba(43, 184, 162, 0.42),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1.5px rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.liquid-pill-mint:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px -5px rgba(43, 184, 162, 0.52);
+}
+
+/* 實體白浮雕膠囊 (Solid White Capsule) */
+.liquid-pill-white {
+  background: #ffffff;
+  color: #1e2229;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 8px 18px -4px rgba(120, 100, 90, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px rgba(255, 255, 255, 1);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.liquid-pill-white:hover {
+  background: #fafafa;
+  box-shadow: 0 10px 22px -5px rgba(120, 100, 90, 0.18);
+}
+
+/* 液態透明玻璃膠囊按鈕 (Glass Pill Button) */
+.liquid-pill-glass {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #334155;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 6px 14px -3px rgba(120, 100, 90, 0.08),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.85);
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.liquid-pill-glass:hover {
+  background: rgba(255, 255, 255, 0.65);
+  color: #0f172a;
+}
+
+/* 輸入框液態玻璃風格 */
+.liquid-input {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1.2px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.05),
+    0 4px 10px -2px rgba(120, 100, 90, 0.05);
+  border-radius: 14px;
+  color: #1e2229;
+  transition: all 0.2s ease;
+}
+
+.liquid-input:focus {
+  background: #ffffff;
+  border-color: #886ef8;
+  outline: none;
+  box-shadow: 
+    0 0 0 3px rgba(136, 110, 248, 0.2),
+    inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* 狀態指示呼吸燈特效 */
 .pulse-indicator {
   position: relative;
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
@@ -34,34 +203,18 @@ body {
 
 .pulse-idle {
   background-color: #10b981;
-  box-shadow: 0 0 10px #10b981;
+  box-shadow: 0 0 8px #10b981;
 }
 .pulse-idle::after {
   border: 2px solid #10b981;
 }
 
 .pulse-printing {
-  background-color: #3b82f6;
-  box-shadow: 0 0 10px #3b82f6;
+  background-color: #6849e8;
+  box-shadow: 0 0 8px #6849e8;
 }
 .pulse-printing::after {
-  border: 2px solid #3b82f6;
-}
-
-.pulse-maintenance {
-  background-color: #f59e0b;
-  box-shadow: 0 0 10px #f59e0b;
-}
-.pulse-maintenance::after {
-  border: 2px solid #f59e0b;
-}
-
-.pulse-offline {
-  background-color: #64748b;
-  box-shadow: 0 0 10px #64748b;
-}
-.pulse-offline::after {
-  border: 2px solid #64748b;
+  border: 2px solid #6849e8;
 }
 
 @keyframes pulse-ring {
@@ -85,23 +238,23 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: rgba(180, 170, 160, 0.45);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: rgba(150, 140, 130, 0.6);
 }
 
 /* QR Code 容器白色外框確保掃描成功 */
 .qrcode-wrapper {
   background: #ffffff;
-  padding: 14px;
-  border-radius: 16px;
+  padding: 16px;
+  border-radius: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 14px 30px -8px rgba(120, 100, 90, 0.25);
 }

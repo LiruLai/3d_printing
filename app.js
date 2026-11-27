@@ -326,11 +326,9 @@ class SinglePrinterQueueApp {
     this.currentView = viewName;
     document.querySelectorAll('.view-tab-btn').forEach(btn => {
       if (btn.dataset.view === viewName) {
-        btn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20');
-        btn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+        btn.className = 'view-tab-btn flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold liquid-pill-violet shadow-sm';
       } else {
-        btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-500/20');
-        btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+        btn.className = 'view-tab-btn flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all';
       }
     });
 
@@ -364,11 +362,11 @@ class SinglePrinterQueueApp {
 
     if (items.length === 0) {
       container.innerHTML = `
-        <div class="py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
-          <svg class="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-          <p class="text-base font-medium">目前沒有待列印模型排程</p>
-          <p class="text-xs text-slate-600 mt-1">點擊上方「+ 排入待印模型」開始建立第一筆排程</p>
-          <button onclick="app.openJobModal()" class="mt-4 px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-md shadow-indigo-600/30">+ 排入第一件模型</button>
+        <div class="py-16 text-center text-slate-500 liquid-glass-panel">
+          <svg class="w-12 h-12 mx-auto mb-3 opacity-40 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          <p class="text-base font-bold text-slate-700">目前沒有待列印模型排程</p>
+          <p class="text-xs text-slate-500 mt-1">點擊上方「+ 排入待印模型」開始建立第一筆排程</p>
+          <button onclick="app.openJobModal()" class="mt-4 px-4 py-2 text-xs font-semibold liquid-pill-violet shadow-md">+ 排入第一件模型</button>
         </div>
       `;
       return;
@@ -382,84 +380,84 @@ class SinglePrinterQueueApp {
       const isQueued = job.status === 'queued';
 
       return `
-        <div class="rounded-2xl p-4 sm:p-4.5 border transition-all ${isPrinting ? 'bg-slate-900/90 border-indigo-500/40 shadow-lg shadow-indigo-950/30' : (isCompleted ? 'bg-slate-950/40 border-slate-800/50 opacity-75' : 'bg-slate-900/50 border-slate-800/80 hover:border-slate-700')}">
+        <div class="p-4 sm:p-5 transition-all ${isPrinting ? 'liquid-card-printing' : (isCompleted ? 'liquid-card opacity-70' : 'liquid-card')}">
           <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             
             <div class="flex-1 min-w-0 w-full">
-              <!-- 模型名稱 (排隊序號以極簡文字呈現，不使用任何標籤) -->
-              <h3 class="text-base font-bold text-white mb-2.5 leading-snug hover:text-indigo-400 transition-colors flex items-center gap-2">
-                ${isPrinting ? '<span class="text-indigo-400 font-mono text-xs font-semibold shrink-0">[列印中]</span>' : (isQueued ? `<span class="text-slate-400 font-mono text-xs font-semibold shrink-0">#${queueOrderNumber++}</span>` : '')}
+              <!-- 模型名稱 -->
+              <h3 class="text-base font-extrabold text-slate-900 mb-2.5 leading-snug flex items-center gap-2">
+                ${isPrinting ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-600 text-white shadow-sm flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-white animate-ping"></span>正在列印</span>' : (isQueued ? `<span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white/70 text-slate-600 border border-white/90 shadow-sm shrink-0">#${queueOrderNumber++}</span>` : '')}
                 <span class="truncate">${job.modelName}</span>
               </h3>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1.5 text-xs text-slate-400 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2 text-xs text-slate-600 liquid-inner-box p-3.5">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-slate-500 shrink-0">提需求人員:</span>
-                  <span class="text-slate-200 font-semibold truncate" title="${job.requester}">${job.requester}</span>
+                  <span class="text-slate-400 font-medium shrink-0">提需求人員:</span>
+                  <span class="text-slate-800 font-bold truncate" title="${job.requester}">${job.requester}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-slate-500 shrink-0">3D檔案提供:</span>
-                  <span class="text-indigo-300 font-medium truncate" title="${job.fileProvider}">${job.fileProvider}</span>
+                  <span class="text-slate-400 font-medium shrink-0">3D檔案提供:</span>
+                  <span class="text-indigo-600 font-semibold truncate" title="${job.fileProvider}">${job.fileProvider}</span>
                 </div>
                 <div class="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
-                  <span class="text-slate-500 shrink-0">使用目的:</span>
-                  <span class="text-slate-300 font-medium truncate" title="${job.purpose}">${job.purpose || '未填寫'}</span>
+                  <span class="text-slate-400 font-medium shrink-0">使用目的:</span>
+                  <span class="text-slate-700 font-medium truncate" title="${job.purpose}">${job.purpose || '未填寫'}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-slate-500 shrink-0">需求日期:</span>
-                  <span class="font-mono text-amber-300 font-semibold">${job.dueDate || '無指定'}</span>
+                  <span class="text-slate-400 font-medium shrink-0">需求日期:</span>
+                  <span class="font-mono text-amber-600 font-bold">${job.dueDate || '無指定'}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-slate-500 shrink-0">耗材規格:</span>
-                  <span class="text-slate-300">${job.material || 'PLA'}</span>
+                  <span class="text-slate-400 font-medium shrink-0">耗材規格:</span>
+                  <span class="text-slate-800 font-bold">${job.material || 'PLA'}</span>
                 </div>
                 <div class="flex items-center gap-1.5 sm:col-span-2 lg:col-span-2">
-                  <span class="text-slate-500 shrink-0">預估時數/備註:</span>
-                  <span class="font-mono text-purple-300 font-semibold mr-1.5">${job.estimatedHours}h</span>
-                  <span class="text-slate-400 truncate max-w-[200px]" title="${job.notes || ''}">${job.notes || '無'}</span>
+                  <span class="text-slate-400 font-medium shrink-0">預估時數/備註:</span>
+                  <span class="font-mono text-violet-700 font-bold mr-1.5">${job.estimatedHours}h</span>
+                  <span class="text-slate-500 truncate max-w-[200px]" title="${job.notes || ''}">${job.notes || '無'}</span>
                 </div>
               </div>
             </div>
 
             <!-- 操作區 -->
-            <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+            <div class="flex flex-row md:flex-col items-center md:items-end justify-between w-full md:w-auto gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-white/60">
               
               <div class="flex items-center gap-2">
                 ${isQueued ? `
-                  <button onclick="app.startPrintingJob('${job.id}')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-all flex items-center gap-1">
+                  <button onclick="app.startPrintingJob('${job.id}')" class="liquid-pill-violet px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
                     開始列印
                   </button>
                 ` : ''}
 
                 ${isPrinting ? `
-                  <button onclick="app.markJobComplete('${job.id}')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all flex items-center gap-1">
+                  <button onclick="app.markJobComplete('${job.id}')" class="liquid-pill-mint px-3.5 py-1.5 text-xs font-semibold flex items-center gap-1 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     完工歸檔
                   </button>
                 ` : ''}
 
                 ${isCompleted ? `
-                  <button onclick="app.requeueJob('${job.id}')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+                  <button onclick="app.requeueJob('${job.id}')" class="liquid-pill-white px-3 py-1.5 text-xs font-semibold text-slate-700">
                     重新排隊
                   </button>
                 ` : ''}
               </div>
 
-              <!-- 順位上移 / 下移 / 編輯 / 刪除 -->
-              <div class="flex items-center gap-1">
+              <!-- 順位上移 / 下移 / 編輯 / 刪除 (實體白浮雕微膠囊) -->
+              <div class="flex items-center gap-1.5">
                 ${isQueued ? `
-                  <button onclick="app.moveQueueOrder('${job.id}', -1)" title="優先順序往前移" class="p-2 sm:p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">
+                  <button onclick="app.moveQueueOrder('${job.id}', -1)" title="優先順序往前移" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
                   </button>
-                  <button onclick="app.moveQueueOrder('${job.id}', 1)" title="優先順序往後移" class="p-2 sm:p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors">
+                  <button onclick="app.moveQueueOrder('${job.id}', 1)" title="優先順序往後移" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                   </button>
                 ` : ''}
-                <button onclick="app.openJobModal('${job.id}')" title="編輯工單" class="p-2 sm:p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                <button onclick="app.openJobModal('${job.id}')" title="編輯工單" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-indigo-600 transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                 </button>
-                <button onclick="app.deleteJob('${job.id}')" title="刪除" class="p-2 sm:p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/50 text-slate-400 hover:text-rose-400 transition-colors">
+                <button onclick="app.deleteJob('${job.id}')" title="刪除" class="liquid-pill-white p-2 sm:p-1.5 text-slate-600 hover:text-rose-600 transition-colors">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
               </div>
@@ -479,19 +477,19 @@ class SinglePrinterQueueApp {
     const completedItems = this.queue.filter(j => j.status === 'completed');
 
     if (completedItems.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500">尚無已完成的歷史記錄</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-400 font-medium">尚無已完成的歷史記錄</td></tr>`;
       return;
     }
 
     tbody.innerHTML = completedItems.map(j => `
-      <tr class="border-b border-slate-800 hover:bg-slate-800/40">
-        <td class="py-3 px-4 font-semibold text-slate-200 text-sm">${j.modelName}</td>
-        <td class="py-3 px-4 text-xs text-slate-300">${j.requester}</td>
-        <td class="py-3 px-4 text-xs text-indigo-300">${j.fileProvider}</td>
-        <td class="py-3 px-4 text-xs text-slate-400 max-w-xs truncate" title="${j.purpose}">${j.purpose}</td>
-        <td class="py-3 px-4 text-xs font-mono text-slate-400">${j.dueDate}</td>
-        <td class="py-3 px-4 text-xs text-right">
-          <button onclick="app.requeueJob('${j.id}')" class="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300">再次列印</button>
+      <tr class="hover:bg-white/40 transition-colors">
+        <td class="py-3.5 px-4 font-bold text-slate-900 text-sm">${j.modelName}</td>
+        <td class="py-3.5 px-4 text-xs font-semibold text-slate-700">${j.requester}</td>
+        <td class="py-3.5 px-4 text-xs font-bold text-indigo-600">${j.fileProvider}</td>
+        <td class="py-3.5 px-4 text-xs text-slate-600 max-w-xs truncate" title="${j.purpose}">${j.purpose}</td>
+        <td class="py-3.5 px-4 text-xs font-mono font-bold text-amber-600">${j.dueDate}</td>
+        <td class="py-3.5 px-4 text-xs text-right">
+          <button onclick="app.requeueJob('${j.id}')" class="liquid-pill-white px-3 py-1 text-xs font-semibold text-slate-700">再次列印</button>
         </td>
       </tr>
     `).join('');
@@ -829,10 +827,10 @@ class SinglePrinterQueueApp {
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'app-toast';
-      toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-medium text-xs shadow-2xl transition-all transform translate-y-12 opacity-0 pointer-events-none flex items-center gap-2';
+      toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-2.5 liquid-pill-white text-slate-800 font-bold text-xs shadow-2xl transition-all transform translate-y-12 opacity-0 pointer-events-none flex items-center gap-2 border border-white';
       document.body.appendChild(toast);
     }
-    toast.innerHTML = `<svg class="w-4 h-4 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${message}`;
+    toast.innerHTML = `<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> <span>${message}</span>`;
     toast.classList.remove('translate-y-12', 'opacity-0');
     toast.classList.add('translate-y-0', 'opacity-100');
 
